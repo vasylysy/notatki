@@ -5,7 +5,7 @@ from flask_login import login_user, login_required, logout_user, current_user
 
 from app import db, app, manager
 from models import Notebook, Notes, User, load_user
-from app.crypt import verify_password, encrypt_password, strength_password
+from app.crypt import verify_password, encrypt_password, strength_password, encrypt_note, decrypt_note
 
 global auth
 auth = [False]
@@ -215,8 +215,12 @@ def create_note(notebook_id):
     if required_id is uid:
         if request.method == "POST":
             if request.form["name"] and not request.form["name"].isspace():
+                if Notebook.query.get(notebook_id).password is None:
+                    content = request.form["content"]
+                else:
+                    content = encrypt_note(decrypted=request.form["content"], salt=request.form["name"])
                 db.session.add(
-                    Notes(name=request.form["name"], content=request.form["content"], notes_notebook=notebook_id))
+                    Notes(name=request.form["name"], content=content, notes_notebook=notebook_id))
                 db.session.commit()
                 return redirect("/notebooks/" + str(notebook_id))
             else:
@@ -234,9 +238,6 @@ def open_note(notebook_id, note_id):
     required_id = int(Notebook.query.get(notebook_id).user_id)
     if required_id is uid:
         if request.method == "POST":
-            Notes.query.get(note_id).name = request.form["title"]
-            Notes.query.get(note_id).content = request.form["content"]
-
             Notes.query.get(note_id).name = request.form["title"]
             Notes.query.get(note_id).content = request.form["content"]
 
