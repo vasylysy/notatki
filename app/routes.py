@@ -59,7 +59,7 @@ def register_p():
             return render_template("register.html", message="Password fields cannot be blank")
         elif password != password1:
             return render_template("register.html", message="Passwords must be same")
-        elif strength_password(password) < 0:
+        elif strength_password(password) < 3:
             return render_template("register.html", message="Too week")
         hash_pwd = encrypt_password(password)
         new_user = User(login=login, password=hash_pwd)
@@ -161,18 +161,18 @@ def delete_note(notebook_id, note_id):
 def open_notebook(notebook_id):
     uid = int(current_user.get_id())
     required_id = int(Notebook.query.get(notebook_id).user_id)
-    print(uid)
-    print(required_id)
-
-    if Notebook.query.get(notebook_id).password is None:
-        return render_template("open.html", notes=Notes.query.filter(Notes.notes_notebook == notebook_id),
-                               notebook=Notebook.query.get(notebook_id), open=False)
-    else:
-        if auth[notebook_id]:
+    if required_id is uid:
+        if Notebook.query.get(notebook_id).password is None:
             return render_template("open.html", notes=Notes.query.filter(Notes.notes_notebook == notebook_id),
-                                   notebook=Notebook.query.get(notebook_id), open=False)
+                                       notebook=Notebook.query.get(notebook_id), open=False)
         else:
-            return redirect("/notebooks/" + str(notebook_id) + "/login")
+            if auth[notebook_id]:
+                return render_template("open.html", notes=Notes.query.filter(Notes.notes_notebook == notebook_id),
+                                       notebook=Notebook.query.get(notebook_id), open=False)
+            else:
+                return redirect("/notebooks/" + str(notebook_id) + "/login")
+    else:
+        return redirect(url_for('home'))
 
 
 @app.route("/notebooks/<int:notebook_id>/login", methods=["GET", "POST"])
@@ -209,40 +209,49 @@ def create_note(notebook_id):
 @app.route("/notebooks/<int:notebook_id>/note/<int:note_id>", methods=["GET", "POST"])
 @login_required
 def open_note(notebook_id, note_id):
-    if request.method == "POST":
-        Notes.query.get(note_id).name = request.form["title"]
-        Notes.query.get(note_id).content = request.form["content"]
+    uid = int(current_user.get_id())
+    required_id = int(Notebook.query.get(notebook_id).user_id)
+    if required_id is uid:
+        if request.method == "POST":
+            Notes.query.get(note_id).name = request.form["title"]
+            Notes.query.get(note_id).content = request.form["content"]
 
-        Notes.query.get(note_id).name = request.form["title"]
-        Notes.query.get(note_id).content = request.form["content"]
+            Notes.query.get(note_id).name = request.form["title"]
+            Notes.query.get(note_id).content = request.form["content"]
 
-        if request.form["font"] and not request.form["font"].isspace():
-            Notes.query.get(note_id).font = request.form["font"]
-        if request.form["color"] and not request.form["color"].isspace():
-            Notes.query.get(note_id).color = request.form["color"]
+            if request.form["font"] and not request.form["font"].isspace():
+                Notes.query.get(note_id).font = request.form["font"]
+            if request.form["color"] and not request.form["color"].isspace():
+                Notes.query.get(note_id).color = request.form["color"]
 
-        db.session.commit()
-        return render_template("open.html", notes=Notes.query.filter(Notes.notes_notebook == notebook_id),
+            db.session.commit()
+            return render_template("open.html", notes=Notes.query.filter(Notes.notes_notebook == notebook_id),
                                notebook=Notebook.query.get(notebook_id), open=True, opened=Notes.query.get(note_id))
 
-    return render_template("open.html", notes=Notes.query.filter(Notes.notes_notebook == notebook_id),
+        return render_template("open.html", notes=Notes.query.filter(Notes.notes_notebook == notebook_id),
                            notebook=Notebook.query.get(notebook_id), open=True, opened=Notes.query.get(note_id))
+    else:
+        return redirect(url_for('home'))
 
 
 @app.route("/notebooks/<int:notebook_id>/edit", methods=["GET", "POST"])
 @login_required
 def edit_notebook(notebook_id):
-    if request.method == "POST":
-        if request.form["name"] and not request.form["name"].isspace():
-            Notebook.query.get(notebook_id).name = request.form["name"]
-            db.session.commit()
-            return open_notebook(notebook_id)
-        else:
-            return render_template("edit_notebook.html", notebook=Notebook.query.get(notebook_id),
-                                   message="Name cannot be Blank")
+    uid = int(current_user.get_id())
+    required_id = int(Notebook.query.get(notebook_id).user_id)
+    if required_id is uid:
+        if request.method == "POST":
+            if request.form["name"] and not request.form["name"].isspace():
+                Notebook.query.get(notebook_id).name = request.form["name"]
+                db.session.commit()
+                return open_notebook(notebook_id)
+            else:
+                return render_template("edit_notebook.html", notebook=Notebook.query.get(notebook_id),
+                                       message="Name cannot be Blank")
 
-    return render_template("edit_notebook.html", notebook=Notebook.query.get(notebook_id))
-
+        return render_template("edit_notebook.html", notebook=Notebook.query.get(notebook_id))
+    else:
+        return redirect(url_for('home'))
 
 @manager.unauthorized_handler
 def unauthorized_callback():

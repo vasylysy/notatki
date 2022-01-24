@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block title%}<title>Notes | Home</title>{% endblock %}
 {% block side %}
-<h2>Hello, {{ current_user.get_id() }}</h2>
 <h1>My Notebooks:</h1>
 {%for notebook in notebooks%}
 <div class="notebook" id="{{notebook.id}}">
