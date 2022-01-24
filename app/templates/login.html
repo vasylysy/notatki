@@ -1,0 +1,13 @@
+{% extends "create_base.html" %}
+{% block form %}
+        <h2>Sign in</h2>
+        <form method="post">
+            <input type="text" placeholder="Enter the UserName" name="login">
+            <input type="password" placeholder="Enter the Password" name="password">
+            <p style="color: red;">{{message}}</p>
+            <input type="submit" value="Sign in">
+        </form>
+        <form action="/signup" method="post">
+            <input type="submit" value="Sign up">
+        </form>
+{% endblock %}
