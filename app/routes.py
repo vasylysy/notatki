@@ -69,6 +69,7 @@ def register_p():
 
 
 @app.route("/notes")
+@app.route("/index")
 def honey():
     return redirect("https://www.youtube.com/watch?v=BBGEG21CGo0")
 
@@ -118,42 +119,52 @@ def create_notebook():
 @app.route("/notebooks/<int:notebook_id>/delete", methods=["GET", "POST"])
 @login_required
 def delete_notebook(notebook_id):
-    if request.method == "POST":
-        if Notebook.query.get(notebook_id).password is not None:
-            if hashlib.sha256(request.form["password"].encode('utf-8')).hexdigest() == Notebook.query.get(
-                    notebook_id).password:
+    uid = int(current_user.get_id())
+    required_id = int(Notebook.query.get(notebook_id).user_id)
+    if required_id is uid:
+        if request.method == "POST":
+            if Notebook.query.get(notebook_id).password is not None:
+                if hashlib.sha256(request.form["password"].encode('utf-8')).hexdigest() == Notebook.query.get(
+                        notebook_id).password:
+                    Notebook.query.filter_by(id=notebook_id).delete()
+                    Notes.query.filter_by(notes_notebook=notebook_id).delete()
+                    db.session.commit()
+                    return redirect("/home")
+                else:
+                    return render_template("delete_notebook.html", name=Notebook.query.get(notebook_id).name,
+                                           id=notebook_id, password=True,
+                                           message="The Password is Incorrect")
+            else:
                 Notebook.query.filter_by(id=notebook_id).delete()
                 Notes.query.filter_by(notes_notebook=notebook_id).delete()
                 db.session.commit()
                 return redirect("/home")
+        else:
+            if Notebook.query.get(notebook_id).password is None:
+                password = False
             else:
-                return render_template("delete_notebook.html", name=Notebook.query.get(notebook_id).name,
-                                       id=notebook_id, password=True,
-                                       message="The Password is Incorrect")
-        else:
-            Notebook.query.filter_by(id=notebook_id).delete()
-            Notes.query.filter_by(notes_notebook=notebook_id).delete()
-            db.session.commit()
-            return redirect("/home")
+                password = True
+            return render_template("delete_notebook.html", name=Notebook.query.get(notebook_id).name, id=notebook_id,
+                                   password=password)
     else:
-        if Notebook.query.get(notebook_id).password is None:
-            password = False
-        else:
-            password = True
-        return render_template("delete_notebook.html", name=Notebook.query.get(notebook_id).name, id=notebook_id,
-                               password=password)
+        return redirect(url_for('honey'))
 
 
 @app.route("/notebooks/<int:notebook_id>/note/<int:note_id>/delete", methods=["GET", "POST"])
 @login_required
 def delete_note(notebook_id, note_id):
-    if request.method == "POST":
-        Notes.query.filter_by(id=note_id).delete()
-        db.session.commit()
-        return redirect("/notebooks/" + str(notebook_id))
+    uid = int(current_user.get_id())
+    required_id = int(Notebook.query.get(notebook_id).user_id)
+    if required_id is uid:
+        if request.method == "POST":
+            Notes.query.filter_by(id=note_id).delete()
+            db.session.commit()
+            return redirect("/notebooks/" + str(notebook_id))
+        else:
+            return render_template("delete_note.html", notebook=Notebook.query.get(notebook_id).id,
+                                note=Notes.query.get(note_id).id)
     else:
-        return render_template("delete_note.html", notebook=Notebook.query.get(notebook_id).id,
-                               note=Notes.query.get(note_id).id)
+        return redirect(url_for('honey'))
 
 
 @app.route("/notebooks/<int:notebook_id>", methods=["GET", "POST", "DELETE"])
@@ -164,7 +175,7 @@ def open_notebook(notebook_id):
     if required_id is uid:
         if Notebook.query.get(notebook_id).password is None:
             return render_template("open.html", notes=Notes.query.filter(Notes.notes_notebook == notebook_id),
-                                       notebook=Notebook.query.get(notebook_id), open=False)
+                                   notebook=Notebook.query.get(notebook_id), open=False)
         else:
             if auth[notebook_id]:
                 return render_template("open.html", notes=Notes.query.filter(Notes.notes_notebook == notebook_id),
@@ -172,38 +183,48 @@ def open_notebook(notebook_id):
             else:
                 return redirect("/notebooks/" + str(notebook_id) + "/login")
     else:
-        return redirect(url_for('home'))
+        return redirect(url_for('honey'))
 
 
 @app.route("/notebooks/<int:notebook_id>/login", methods=["GET", "POST"])
 @login_required
 def login_notebook(notebook_id):
-    if request.method == "POST":
-        password = hashlib.sha256(request.form["password"].encode('utf-8')).hexdigest()
-        if password == Notebook.query.get(notebook_id).password:
-            auth[notebook_id] = True
-            return redirect("/notebooks/" + str(notebook_id))
+    uid = int(current_user.get_id())
+    required_id = int(Notebook.query.get(notebook_id).user_id)
+    if required_id is uid:
+        if request.method == "POST":
+            password = hashlib.sha256(request.form["password"].encode('utf-8')).hexdigest()
+            if password == Notebook.query.get(notebook_id).password:
+                auth[notebook_id] = True
+                return redirect("/notebooks/" + str(notebook_id))
+            else:
+                return render_template("notebook_login.html", notebook=Notebook.query.get(notebook_id),
+                                       message="The password is "
+                                               "incorrect")
         else:
-            return render_template("notebook_login.html", notebook=Notebook.query.get(notebook_id),
-                                   message="The password is "
-                                           "incorrect")
+            return render_template("notebook_login.html", notebook=Notebook.query.get(notebook_id))
     else:
-        return render_template("notebook_login.html", notebook=Notebook.query.get(notebook_id))
+        return redirect(url_for('honey'))
 
 
 @app.route("/notebooks/<int:notebook_id>/note/create", methods=["GET", "POST"])
 @login_required
 def create_note(notebook_id):
-    if request.method == "POST":
-        if request.form["name"] and not request.form["name"].isspace():
-            db.session.add(
-                Notes(name=request.form["name"], content=request.form["content"], notes_notebook=notebook_id))
-            db.session.commit()
-            return redirect("/notebooks/" + str(notebook_id))
+    uid = int(current_user.get_id())
+    required_id = int(Notebook.query.get(notebook_id).user_id)
+    if required_id is uid:
+        if request.method == "POST":
+            if request.form["name"] and not request.form["name"].isspace():
+                db.session.add(
+                    Notes(name=request.form["name"], content=request.form["content"], notes_notebook=notebook_id))
+                db.session.commit()
+                return redirect("/notebooks/" + str(notebook_id))
+            else:
+                return render_template("create_note.html", message="Name cannot be blank", id=notebook_id)
         else:
-            return render_template("create_note.html", message="Name cannot be blank", id=notebook_id)
+            return render_template("create_note.html", id=notebook_id)
     else:
-        return render_template("create_note.html", id=notebook_id)
+        return redirect(url_for('honey'))
 
 
 @app.route("/notebooks/<int:notebook_id>/note/<int:note_id>", methods=["GET", "POST"])
@@ -226,12 +247,12 @@ def open_note(notebook_id, note_id):
 
             db.session.commit()
             return render_template("open.html", notes=Notes.query.filter(Notes.notes_notebook == notebook_id),
-                               notebook=Notebook.query.get(notebook_id), open=True, opened=Notes.query.get(note_id))
+                                   notebook=Notebook.query.get(notebook_id), open=True, opened=Notes.query.get(note_id))
 
         return render_template("open.html", notes=Notes.query.filter(Notes.notes_notebook == notebook_id),
-                           notebook=Notebook.query.get(notebook_id), open=True, opened=Notes.query.get(note_id))
+                               notebook=Notebook.query.get(notebook_id), open=True, opened=Notes.query.get(note_id))
     else:
-        return redirect(url_for('home'))
+        return redirect(url_for('honey'))
 
 
 @app.route("/notebooks/<int:notebook_id>/edit", methods=["GET", "POST"])
@@ -251,7 +272,8 @@ def edit_notebook(notebook_id):
 
         return render_template("edit_notebook.html", notebook=Notebook.query.get(notebook_id))
     else:
-        return redirect(url_for('home'))
+        return redirect(url_for('honey'))
+
 
 @manager.unauthorized_handler
 def unauthorized_callback():
