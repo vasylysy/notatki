@@ -1,4 +1,4 @@
-# notatki
+# notatki (not finished)
 
 Opis projektu:
 Aplikacja pozwala zalogowanemu użytkownikowi na przechowywanie notatek tekstowych. Niektóre notatki mogą być zaznaczone jako zaszyfrowane. Odszyfrowanie powinno wymagać podania tajnego hasła.
