@@ -65,5 +65,5 @@ def decrypt_note(encrypted, salt):
     key = PBKDF2(bytes('password','utf-8'), bytes(salt,'utf-8'))
     data_padded = encrypted
     aes = AES.new(key, AES.MODE_ECB)
-    decrypted = aes.decrypt(data_padded)
-    return unpad(decrypted, 16).decode('utf-8')
+    decrypted = unpad(aes.decrypt(data_padded), 16).decode('utf-8')
+    return decrypted

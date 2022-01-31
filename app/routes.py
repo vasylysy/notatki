@@ -4,7 +4,7 @@ import hashlib
 from flask_login import login_user, login_required, logout_user, current_user
 
 from app import db, app, manager
-from models import Notebook, Notes, User, load_user
+from app.models import Notebook, Notes, User, load_user
 from app.crypt import verify_password, encrypt_password, strength_password, encrypt_note, decrypt_note
 
 global auth
@@ -102,12 +102,14 @@ def home():
 def create_notebook():
     uid = current_user.get_id()
     if request.method == "POST":
+        is_public = True if request.form.get('is-public') == 'on' else False
         if request.form["name"] and not request.form["name"].isspace():
             if request.form["password"] and not request.form["password"].isspace():
                 db.session.add(Notebook(user_id=uid, name=request.form["name"],
-                                        password=hashlib.sha256(request.form["password"].encode('utf-8')).hexdigest()))
+                                        password=hashlib.sha256(request.form["password"].encode('utf-8')).hexdigest(),
+                                        is_public=is_public))
             else:
-                db.session.add(Notebook(user_id=uid, name=request.form["name"]))
+                db.session.add(Notebook(user_id=uid, name=request.form["name"], is_public=is_public))
             db.session.commit()
             return redirect("/home")
         else:
@@ -218,7 +220,7 @@ def create_note(notebook_id):
                 if Notebook.query.get(notebook_id).password is None:
                     content = request.form["content"]
                 else:
-                    content = encrypt_note(decrypted=request.form["content"], salt=request.form["name"])
+                    content = encrypt_note(decrypted=request.form["content"], salt=str(current_user.get_login))
                 db.session.add(
                     Notes(name=request.form["name"], content=content, notes_notebook=notebook_id))
                 db.session.commit()
@@ -237,9 +239,15 @@ def open_note(notebook_id, note_id):
     uid = int(current_user.get_id())
     required_id = int(Notebook.query.get(notebook_id).user_id)
     if required_id is uid:
+        NotesG = Notes.query.get(note_id)
+        if Notebook.query.get(notebook_id).password:
+            NotesG.content = decrypt_note(NotesG.content, str(current_user.get_login))
         if request.method == "POST":
             Notes.query.get(note_id).name = request.form["title"]
-            Notes.query.get(note_id).content = request.form["content"]
+            if Notebook.query.get(notebook_id).password:
+                Notes.query.get(note_id).content = encrypt_note(request.form["content"], str(current_user.get_login))
+            else:
+                Notes.query.get(note_id).content = request.form["content"]
 
             if request.form["font"] and not request.form["font"].isspace():
                 Notes.query.get(note_id).font = request.form["font"]
@@ -247,11 +255,10 @@ def open_note(notebook_id, note_id):
                 Notes.query.get(note_id).color = request.form["color"]
 
             db.session.commit()
-            return render_template("open.html", notes=Notes.query.filter(Notes.notes_notebook == notebook_id),
-                                   notebook=Notebook.query.get(notebook_id), open=True, opened=Notes.query.get(note_id))
+            return redirect(url_for('open_note', notebook_id=notebook_id, note_id=note_id))
 
         return render_template("open.html", notes=Notes.query.filter(Notes.notes_notebook == notebook_id),
-                               notebook=Notebook.query.get(notebook_id), open=True, opened=Notes.query.get(note_id))
+                               notebook=Notebook.query.get(notebook_id), open=True, opened=NotesG)
     else:
         return redirect(url_for('honey'))
 

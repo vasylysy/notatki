@@ -11,6 +11,9 @@ class User(db.Model, UserMixin):
     login = db.Column(db.String(120), nullable=False, unique=True)
     password = db.Column(db.String(255), nullable=False)
 
+    def get_login(self):
+        return str(User.login)
+
 
 class Notebook(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -19,7 +22,8 @@ class Notebook(db.Model):
     __table_args__ = {'extend_existing': True}
     password = db.Column(db.String(100), default=None)
     last_modified = db.Column(db.DateTime, default=datetime.datetime.today())
-
+    is_public = db.Column(db.Boolean, nullable=False, default=False)
+    shared_uid = db.Column(db.String(100), default=None)
 
 class Notes(db.Model):
     id = db.Column(db.Integer, primary_key=True)
