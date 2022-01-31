@@ -10,6 +10,7 @@ class User(db.Model, UserMixin):
     __table_args__ = {'extend_existing': True}
     login = db.Column(db.String(120), nullable=False, unique=True)
     password = db.Column(db.String(255), nullable=False)
+    attempts = db.Column(db.Integer, default=0, nullable=False)
 
     def get_login(self):
         return str(User.login)

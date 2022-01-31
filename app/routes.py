@@ -1,5 +1,6 @@
 from flask import render_template, redirect, url_for, request, flash
 import hashlib
+import time
 
 from flask_login import login_user, login_required, logout_user, current_user
 
@@ -28,12 +29,17 @@ def login_p():
         elif not password:
             return render_template("login.html", message="Password cannot be blank")
         user = User.query.filter_by(login=login).first()
+        time.sleep(2**user.attempts)
         if not user:
             return render_template("login.html", message="User Name does not exist")
-        elif verify_password(user.password, password):
+        if verify_password(user.password, password):
             login_user(user)
+            user.attempts = 0
+            db.session.commit()
             return redirect(url_for("home"))
         else:
+            user.attempts += 1
+            db.session.commit()
             return render_template("login.html", message="Password is incorrect")
     return render_template("login.html")
 
