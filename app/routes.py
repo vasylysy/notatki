@@ -219,7 +219,8 @@ def create_note(notebook_id):
         if request.method == "POST":
             if request.form["name"] and not request.form["name"].isspace():
                 if Notebook.query.get(notebook_id).password:
-                    content = more_encrypt_note(decrypted=request.form["content"], salt=str(current_user.get_login))
+                    password = Notebook.query.get(notebook_id).password
+                    content = more_encrypt_note(decrypted=request.form["content"], password=password, salt=str(current_user.get_login))
                 else:
                     content = encrypt_note(decrypted=request.form["content"], salt=str(current_user.get_login))
                 db.session.add(
@@ -242,13 +243,15 @@ def open_note(notebook_id, note_id):
     if required_id is uid:
         NotesG = Notes.query.get(note_id)
         if Notebook.query.get(notebook_id).password:
-            NotesG.content = more_decrypt_note(NotesG.content, str(current_user.get_login))
+            password = Notebook.query.get(notebook_id).password
+            NotesG.content = more_decrypt_note(NotesG.content, password, str(current_user.get_login))
         else:
             NotesG.content = decrypt_note(NotesG.content, str(current_user.get_login))
         if request.method == "POST":
             Notes.query.get(note_id).name = request.form["title"]
             if Notebook.query.get(notebook_id).password:
-                Notes.query.get(note_id).content = more_encrypt_note(request.form["content"], str(current_user.get_login))
+                password = Notebook.query.get(notebook_id).password
+                Notes.query.get(note_id).content = more_encrypt_note(request.form["content"], password, str(current_user.get_login))
             else:
                 Notes.query.get(note_id).content = encrypt_note(request.form["content"], str(current_user.get_login))
 
