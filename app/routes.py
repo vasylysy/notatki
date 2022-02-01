@@ -113,7 +113,7 @@ def create_notebook():
         if request.form["name"] and not request.form["name"].isspace():
             if request.form["password"] and not request.form["password"].isspace():
                 db.session.add(Notebook(user_id=uid, name=request.form["name"],
-                                        password=hashlib.sha256(request.form["password"].encode('utf-8')).hexdigest(),
+                                        password=encrypt_password(request.form["password"]),
                                         is_public=is_public))
             else:
                 db.session.add(Notebook(user_id=uid, name=request.form["name"], is_public=is_public))
@@ -133,8 +133,7 @@ def delete_notebook(notebook_id):
     if required_id is uid:
         if request.method == "POST":
             if Notebook.query.get(notebook_id).password is not None:
-                if hashlib.sha256(request.form["password"].encode('utf-8')).hexdigest() == Notebook.query.get(
-                        notebook_id).password:
+                if verify_password(Notebook.query.get(notebook_id).password, request.form["password"]):
                     Notebook.query.filter_by(id=notebook_id).delete()
                     Notes.query.filter_by(notes_notebook=notebook_id).delete()
                     db.session.commit()
@@ -202,8 +201,7 @@ def login_notebook(notebook_id):
     required_id = int(Notebook.query.get(notebook_id).user_id)
     if required_id is uid:
         if request.method == "POST":
-            password = hashlib.sha256(request.form["password"].encode('utf-8')).hexdigest()
-            if password == Notebook.query.get(notebook_id).password:
+            if verify_password(Notebook.query.get(notebook_id).password, request.form["password"]):
                 auth[notebook_id] = True
                 return redirect("/notebooks/" + str(notebook_id))
             else:
