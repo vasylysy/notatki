@@ -51,15 +51,7 @@ def strength_password(password):
     return strength
 
 
-def encrypt_note(decrypted, salt):
-    key = PBKDF2(bytes('password','utf-8'), bytes(salt,'utf-8'))
-    data=decrypted.encode('utf-8')
-    data_padded = pad(data, 16)
-    aes = AES.new(key, AES.MODE_ECB)
-    encrypted = aes.encrypt(data_padded)
-    return encrypted
-
-def more_encrypt_note(decrypted, password, salt):
+def encrypt_note(decrypted, password, salt):
     key = PBKDF2(bytes(password, 'utf-8'), bytes(salt, 'utf-8'))
     if len(salt) < 16:
         salt = salt * len(salt)
@@ -69,14 +61,7 @@ def more_encrypt_note(decrypted, password, salt):
     encrypted = aes.encrypt(data_padded)
     return encrypted
 
-def decrypt_note(encrypted, salt):
-    key = PBKDF2(bytes('password','utf-8'), bytes(salt,'utf-8'))
-    data_padded = encrypted
-    aes = AES.new(key, AES.MODE_ECB)
-    decrypted = unpad(aes.decrypt(data_padded), 16).decode('utf-8')
-    return decrypted
-
-def more_decrypt_note(encrypted, password, salt):
+def decrypt_note(encrypted, password, salt):
     key = PBKDF2(bytes(password, 'utf-8'), bytes(salt, 'utf-8'))
     if len(salt) < 16:
         salt = salt*len(salt)
