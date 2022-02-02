@@ -61,10 +61,11 @@ def encrypt_note(decrypted, password, salt):
     encrypted = aes.encrypt(data_padded)
     return encrypted
 
+
 def decrypt_note(encrypted, password, salt):
     key = PBKDF2(bytes(password, 'utf-8'), bytes(salt, 'utf-8'))
     if len(salt) < 16:
-        salt = salt*len(salt)
+        salt = salt * len(salt)
     iv = bytes(salt[:16], 'utf-8')
     aes = AES.new(key, AES.MODE_CBC, IV=iv)
     data_padded = encrypted

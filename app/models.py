@@ -26,6 +26,7 @@ class Notebook(db.Model):
     is_public = db.Column(db.Boolean, nullable=False, default=False)
     shared_uid = db.Column(db.String(100), default=None)
 
+
 class Notes(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(25), default="New Note")
